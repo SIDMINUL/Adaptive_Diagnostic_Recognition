@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AdaptIQ — AI-Powered GRE Diagnostic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --bg: #0b0e14;
+    --surface: #131720;
+    --surface2: #1b2130;
+    --border: #252d3f;
+    --accent: #5b9cf6;
+    --accent2: #a78bfa;
+    --success: #34d399;
+    --error: #f87171;
+    --warn: #fbbf24;
+    --text: #e8eaf2;
+    --muted: #6b7a99;
+    --radius: 12px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{font-size:16px}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Lora',serif;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  /* ── Background grid ── */
+  body::before{
+    content:'';
+    position:fixed;inset:0;
+    background-image:
+      linear-gradient(rgba(91,156,246,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(91,156,246,.04) 1px, transparent 1px);
+    background-size:48px 48px;
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* ── Blob glow ── */
+  .blob{
+    position:fixed;
+    border-radius:50%;
+    filter:blur(120px);
+    opacity:.15;
+    pointer-events:none;
+    z-index:0;
+  }
+  .blob-1{width:600px;height:600px;background:var(--accent);top:-200px;left:-150px}
+  .blob-2{width:400px;height:400px;background:var(--accent2);bottom:-100px;right:-100px}
+
+  /* ── Layout ── */
+  #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem}
+
+  /* ── Cards ── */
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:2.5rem;
+    width:100%;max-width:680px;
+    box-shadow:0 8px 40px rgba(0,0,0,.4);
+    animation:fadeUp .5s ease both;
+  }
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ── Typography ── */
+  h1{font-family:'Syne',sans-serif;font-weight:800;font-size:2.4rem;line-height:1.1;letter-spacing:-.03em}
+  h2{font-family:'Syne',sans-serif;font-weight:700;font-size:1.5rem}
+  h3{font-family:'Syne',sans-serif;font-weight:600;font-size:1.1rem;color:var(--muted)}
+  .mono{font-family:'DM Mono',monospace;font-size:.85rem}
+  .label{font-family:'Syne',sans-serif;font-weight:600;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+  /* ── Gradient text ── */
+  .grad{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+  /* ── Inputs ── */
+  input[type=text]{
+    width:100%;
+    background:var(--surface2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    color:var(--text);
+    font-family:'Lora',serif;
+    font-size:1rem;
+    padding:.85rem 1rem;
+    margin-top:.4rem;
+    outline:none;
+    transition:border .2s;
+  }
+  input[type=text]:focus{border-color:var(--accent)}
+
+  /* ── Buttons ── */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+    font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;
+    letter-spacing:.02em;text-transform:uppercase;
+    padding:.85rem 1.8rem;border-radius:8px;
+    border:none;cursor:pointer;transition:all .2s;
+  }
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{filter:brightness(1.15);transform:translateY(-1px)}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .btn:disabled{opacity:.4;pointer-events:none}
+
+  /* ── Answer options ── */
+  .option{
+    display:flex;align-items:flex-start;gap:1rem;
+    padding:1rem 1.2rem;
+    border:1px solid var(--border);
+    border-radius:10px;
+    cursor:pointer;
+    transition:all .2s;
+    margin-bottom:.6rem;
+    background:var(--surface2);
+  }
+  .option:hover{border-color:var(--accent);background:rgba(91,156,246,.07)}
+  .option.selected{border-color:var(--accent);background:rgba(91,156,246,.12)}
+  .option.correct{border-color:var(--success);background:rgba(52,211,153,.1)}
+  .option.wrong{border-color:var(--error);background:rgba(248,113,113,.1)}
+  .option-key{
+    width:28px;height:28px;min-width:28px;
+    border-radius:6px;background:var(--border);
+    font-family:'DM Mono',monospace;font-weight:500;font-size:.85rem;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .2s;
+  }
+  .option.selected .option-key{background:var(--accent);color:#fff}
+  .option.correct .option-key{background:var(--success);color:#000}
+  .option.wrong .option-key{background:var(--error);color:#fff}
+
+  /* ── Ability meter ── */
+  .meter-wrap{background:var(--surface2);border-radius:999px;height:8px;overflow:hidden;margin:.5rem 0}
+  .meter-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+  /* ── Progress bar ── */
+  .progress-row{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem}
+  .progress-dots{display:flex;gap:6px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .3s}
+  .dot.done{background:var(--accent)}
+  .dot.current{background:var(--accent2);box-shadow:0 0 6px var(--accent2)}
+
+  /* ── Feedback pill ── */
+  .pill{
+    display:inline-flex;align-items:center;gap:.4rem;
+    padding:.4rem .9rem;border-radius:999px;
+    font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;
+  }
+  .pill-correct{background:rgba(52,211,153,.15);color:var(--success)}
+  .pill-wrong{background:rgba(248,113,113,.15);color:var(--error)}
+
+  /* ── Study plan ── */
+  .plan-content{
+    background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+    padding:1.5rem;margin-top:1rem;
+    font-size:.95rem;line-height:1.7;
+    white-space:pre-wrap;
+  }
+  .plan-content strong{color:var(--accent);font-style:normal}
+
+  /* ── Stats grid ── */
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+  .stat{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem 1.2rem}
+  .stat-val{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;margin-bottom:.1rem}
+  .stat-label{font-size:.8rem;color:var(--muted)}
+
+  /* ── Topic row ── */
+  .topic-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem}
+  .topic-name{flex:0 0 180px;font-size:.9rem}
+  .topic-bar-wrap{flex:1;background:var(--surface2);height:6px;border-radius:999px;overflow:hidden}
+  .topic-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:999px}
+  .topic-pct{font-family:'DM Mono',monospace;font-size:.8rem;color:var(--muted);min-width:36px;text-align:right}
+
+  /* ── Header bar ── */
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem}
+
+  /* ── Spinner ── */
+  .spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .hidden{display:none!important}
+
+  @media(max-width:480px){
+    .card{padding:1.5rem}
+    h1{font-size:1.8rem}
+    .stats{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<div id="app">
+  <!-- ── SCREEN: Start ── -->
+  <div id="screen-start" class="card">
+    <div style="margin-bottom:1rem">
+      <span class="label">Powered by IRT + Claude AI</span>
+    </div>
+    <h1>Adaptive<br/><span class="grad">GRE Diagnostic</span></h1>
+    <p style="margin:1rem 0 2rem;color:var(--muted);line-height:1.7">
+      Our engine dynamically selects questions based on your ability using
+      <em>Item Response Theory</em>. After 10 questions, Claude AI generates
+      a personalised 3-step study plan.
+    </p>
+    <div style="margin-bottom:1.5rem">
+      <label class="label" for="student-name">Your name</label>
+      <input type="text" id="student-name" placeholder="e.g. Alex" autocomplete="off"/>
+    </div>
+    <button class="btn btn-primary" onclick="startSession()" id="btn-start">
+      Begin Diagnostic →
+    </button>
+    <div id="start-error" style="margin-top:1rem;color:var(--error);font-size:.9rem"></div>
+  </div>
+
+  <!-- ── SCREEN: Question ── -->
+  <div id="screen-question" class="card hidden">
+    <div class="header">
+      <div>
+        <span class="label" id="q-topic"></span>
+        <div style="font-family:'DM Mono',monospace;font-size:.8rem;color:var(--muted);margin-top:.2rem">
+          Ability estimate: <span id="q-ability" style="color:var(--accent)"></span>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <span class="mono" style="color:var(--muted)" id="q-counter"></span>
+      </div>
+    </div>
+
+    <!-- progress dots -->
+    <div class="progress-row">
+      <div class="progress-dots" id="progress-dots"></div>
+    </div>
+
+    <!-- ability meter -->
+    <div class="meter-wrap"><div class="meter-fill" id="ability-bar" style="width:50%"></div></div>
+
+    <p id="q-text" style="font-size:1.1rem;line-height:1.7;margin:1.5rem 0 1.2rem"></p>
+
+    <div id="options-container"></div>
+
+    <div id="feedback-row" style="margin-top:1rem" class="hidden">
+      <span id="feedback-pill"></span>
+      <span id="feedback-msg" style="margin-left:.6rem;font-size:.9rem;color:var(--muted)"></span>
+    </div>
+
+    <div style="display:flex;gap:1rem;margin-top:1.5rem;justify-content:flex-end">
+      <button class="btn btn-primary hidden" id="btn-next" onclick="loadNextQuestion()">
+        Next Question →
+      </button>
+      <button class="btn btn-primary hidden" id="btn-results" onclick="loadResults()">
+        View My Results →
+      </button>
+    </div>
+  </div>
+
+  <!-- ── SCREEN: Results ── -->
+  <div id="screen-results" class="card hidden" style="max-width:740px">
+    <div style="margin-bottom:1rem"><span class="label">Diagnostic Complete</span></div>
+    <h2 style="margin-bottom:.25rem">Your Results, <span id="res-name" class="grad"></span></h2>
+    <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem" id="res-level"></p>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-val grad" id="res-score"></div>
+        <div class="stat-label">Ability Score</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" id="res-accuracy"></div>
+        <div class="stat-label">Accuracy</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" id="res-correct"></div>
+        <div class="stat-label">Correct / Total</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" id="res-label" style="font-size:1rem;display:flex;align-items:center"></div>
+        <div class="stat-label">Proficiency Level</div>
+      </div>
+    </div>
+
+    <!-- Topic breakdown -->
+    <h3 style="margin-bottom:.75rem">Topic Performance</h3>
+    <div id="topic-breakdown" style="margin-bottom:1.5rem"></div>
+
+    <!-- Study plan -->
+    <h3 style="margin-bottom:.25rem">✦ AI Study Plan</h3>
+    <div id="study-plan-container">
+      <div style="display:flex;align-items:center;gap:.6rem;padding:1rem;color:var(--muted)">
+        <div class="spinner"></div> Generating your personalised plan…
+      </div>
+    </div>
+
+    <button class="btn btn-ghost" onclick="resetApp()" style="margin-top:1.5rem;width:100%">
+      ↩ Start a New Session
+    </button>
+  </div>
+</div>
+
+<script>
+const API = '/api/v1';
+let sessionId = null;
+let currentQuestionId = null;
+let questionsAnswered = 0;
+const TOTAL_QUESTIONS = 10;
+
+function abilityLabel(t) {
+  if (t < 0.25) return 'Beginner';
+  if (t < 0.45) return 'Developing';
+  if (t < 0.60) return 'Intermediate';
+  if (t < 0.75) return 'Proficient';
+  return 'Advanced';
+}
+
+function show(id) {
+  ['screen-start','screen-question','screen-results'].forEach(s => {
+    document.getElementById(s).classList.add('hidden');
+  });
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function renderDots(answered) {
+  const wrap = document.getElementById('progress-dots');
+  wrap.innerHTML = '';
+  for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < answered ? ' done' : i === answered ? ' current' : '');
+    wrap.appendChild(d);
+  }
+}
+
+async function startSession() {
+  const name = document.getElementById('student-name').value.trim() || 'Anonymous';
+  const btn = document.getElementById('btn-start');
+  const errEl = document.getElementById('start-error');
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Starting…';
+
+  try {
+    const r = await fetch(`${API}/sessions/start`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({student_name: name})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    sessionId = data.session_id;
+    questionsAnswered = 0;
+    show('screen-question');
+    await loadNextQuestion();
+  } catch(e) {
+    errEl.textContent = '⚠ ' + (e.message || 'Could not reach server. Is FastAPI running?');
+    btn.disabled = false;
+    btn.textContent = 'Begin Diagnostic →';
+  }
+}
+
+async function loadNextQuestion() {
+  document.getElementById('btn-next').classList.add('hidden');
+  document.getElementById('btn-results').classList.add('hidden');
+  document.getElementById('feedback-row').classList.add('hidden');
+  document.getElementById('options-container').innerHTML =
+    '<div style="display:flex;align-items:center;gap:.6rem;color:var(--muted);padding:.5rem"><div class="spinner"></div> Loading question…</div>';
+
+  try {
+    const r = await fetch(`${API}/sessions/${sessionId}/next`);
+    if (!r.ok) throw new Error(await r.text());
+    const q = await r.json();
+    currentQuestionId = q.question_id;
+
+    document.getElementById('q-topic').textContent = q.topic;
+    document.getElementById('q-counter').textContent = `${q.question_number} / ${TOTAL_QUESTIONS}`;
+    document.getElementById('q-ability').textContent = q.current_ability.toFixed(2);
+    document.getElementById('ability-bar').style.width = (q.current_ability * 100) + '%';
+    document.getElementById('q-text').textContent = q.text;
+
+    renderDots(q.question_number - 1);
+
+    const opts = document.getElementById('options-container');
+    opts.innerHTML = '';
+    q.options.forEach(o => {
+      const div = document.createElement('div');
+      div.className = 'option';
+      div.dataset.key = o.key;
+      div.innerHTML = `<span class="option-key">${o.key}</span><span>${o.text}</span>`;
+      div.onclick = () => selectOption(o.key);
+      opts.appendChild(div);
+    });
+  } catch(e) {
+    document.getElementById('options-container').innerHTML =
+      `<p style="color:var(--error)">Error: ${e.message}</p>`;
+  }
+}
+
+function selectOption(key) {
+  document.querySelectorAll('.option').forEach(el => el.classList.remove('selected'));
+  const chosen = document.querySelector(`.option[data-key="${key}"]`);
+  if (chosen) chosen.classList.add('selected');
+  submitAnswer(key);
+}
+
+async function submitAnswer(key) {
+  document.querySelectorAll('.option').forEach(el => {
+    el.style.pointerEvents = 'none';
+  });
+
+  try {
+    const r = await fetch(`${API}/sessions/${sessionId}/answer`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({session_id: sessionId, question_id: currentQuestionId, answer: key})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+
+    questionsAnswered = data.questions_answered;
+
+    // Update ability bar
+    document.getElementById('q-ability').textContent = data.ability_updated.toFixed(2);
+    document.getElementById('ability-bar').style.width = (data.ability_updated * 100) + '%';
+
+    // Highlight correct / wrong
+    document.querySelectorAll('.option').forEach(el => {
+      if (el.dataset.key === data.correct_answer) el.classList.add('correct');
+      else if (el.dataset.key === key && !data.is_correct) el.classList.add('wrong');
+    });
+
+    // Feedback
+    const feedRow = document.getElementById('feedback-row');
+    feedRow.classList.remove('hidden');
+    const pill = document.getElementById('feedback-pill');
+    if (data.is_correct) {
+      pill.className = 'pill pill-correct';
+      pill.textContent = '✓ Correct';
+    } else {
+      pill.className = 'pill pill-wrong';
+      pill.textContent = '✗ Incorrect';
+    }
+    document.getElementById('feedback-msg').textContent = data.message;
+
+    // Next button
+    if (data.is_complete) {
+      document.getElementById('btn-results').classList.remove('hidden');
+    } else {
+      document.getElementById('btn-next').classList.remove('hidden');
+    }
+  } catch(e) {
+    document.getElementById('feedback-row').classList.remove('hidden');
+    document.getElementById('feedback-pill').className = 'pill pill-wrong';
+    document.getElementById('feedback-pill').textContent = 'Error';
+    document.getElementById('feedback-msg').textContent = e.message;
+  }
+}
+
+async function loadResults() {
+  show('screen-results');
+  document.getElementById('study-plan-container').innerHTML =
+    '<div style="display:flex;align-items:center;gap:.6rem;padding:1rem;color:var(--muted)"><div class="spinner"></div> Generating your personalised plan…</div>';
+
+  try {
+    const r = await fetch(`${API}/sessions/${sessionId}/result`);
+    if (!r.ok) throw new Error(await r.text());
+    const d = await r.json();
+
+    document.getElementById('res-name').textContent = d.student_name;
+    document.getElementById('res-score').textContent = d.final_ability.toFixed(2);
+    document.getElementById('res-accuracy').textContent = Math.round(d.accuracy * 100) + '%';
+    document.getElementById('res-correct').textContent = `${d.correct_count} / ${d.total_questions}`;
+    document.getElementById('res-label').textContent = abilityLabel(d.final_ability);
+    document.getElementById('res-level').textContent =
+      `Proficiency Level: ${abilityLabel(d.final_ability)} — Ability Score: ${d.final_ability.toFixed(2)} / 1.00`;
+
+    // Topic breakdown
+    const topicEl = document.getElementById('topic-breakdown');
+    topicEl.innerHTML = '';
+    Object.entries(d.topic_breakdown).forEach(([topic, stats]) => {
+      const pct = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+      topicEl.innerHTML += `
+        <div class="topic-row">
+          <div class="topic-name">${topic}</div>
+          <div class="topic-bar-wrap"><div class="topic-bar" style="width:${pct}%"></div></div>
+          <div class="topic-pct">${pct}%</div>
+        </div>`;
+    });
+
+    // Study plan — poll every 2s if not yet ready
+    renderStudyPlan(d.study_plan, d.session_id);
+  } catch(e) {
+    document.getElementById('study-plan-container').innerHTML =
+      `<p style="color:var(--error)">Error loading results: ${e.message}</p>`;
+  }
+}
+
+async function renderStudyPlan(plan, sid) {
+  if (plan) {
+    const formatted = plan
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br/>');
+    document.getElementById('study-plan-container').innerHTML =
+      `<div class="plan-content">${formatted}</div>`;
+    return;
+  }
+  // Poll up to 30 seconds
+  let tries = 0;
+  const interval = setInterval(async () => {
+    tries++;
+    if (tries > 15) {
+      clearInterval(interval);
+      document.getElementById('study-plan-container').innerHTML =
+        '<p style="color:var(--muted);padding:1rem">Plan generation timed out. Refresh to retry.</p>';
+      return;
+    }
+    try {
+      const r = await fetch(`${API}/sessions/${sid}/result`);
+      const d = await r.json();
+      if (d.study_plan) {
+        clearInterval(interval);
+        renderStudyPlan(d.study_plan, sid);
+      }
+    } catch {}
+  }, 2000);
+}
+
+function resetApp() {
+  sessionId = null;
+  currentQuestionId = null;
+  questionsAnswered = 0;
+  document.getElementById('student-name').value = '';
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-start').textContent = 'Begin Diagnostic →';
+  document.getElementById('start-error').textContent = '';
+  show('screen-start');
+}
+</script>
+</body>
+</html>
