@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.routers.api import router
-from app.services.database import close_db, connect_db
+from app.services.database import close_db, connect_db, questions_col
 
 app = FastAPI(
     title="AI-Driven Adaptive Diagnostic Engine",
@@ -16,7 +16,7 @@ app = FastAPI(
         "A one-dimensional adaptive testing system inspired by Item Response Theory "
         "(IRT), with MongoDB-backed sessions and Groq-powered personalized study plans."
     ),
-    version="1.1.0",
+    version="1.2.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -48,6 +48,15 @@ async def health_check():
 @app.on_event("startup")
 async def on_startup():
     await connect_db()
+
+    # The repository includes a 25-question seed set. Automatically populate
+    # an empty questions collection so a fresh Render/MongoDB deployment works
+    # without requiring a manual `python -m app.seed` step.
+    if await questions_col().count_documents({}) == 0:
+        from app.seed import QUESTIONS
+
+        await questions_col().insert_many(QUESTIONS)
+        print(f"[Seed] Inserted {len(QUESTIONS)} questions into MongoDB.")
 
 
 @app.on_event("shutdown")
