@@ -86,7 +86,9 @@ def generate_study_plan(
     try:
         client = _get_client()
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            # GPT-OSS 120B is a current Groq production model and avoids
+            # account-specific access issues seen with the previous model.
+            model="openai/gpt-oss-120b",
             messages=[
                 {"role": "system", "content": "You are an expert GRE tutor."},
                 {"role": "user", "content": prompt},
