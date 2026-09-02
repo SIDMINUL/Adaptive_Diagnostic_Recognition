@@ -13,7 +13,7 @@ The backend is built with **FastAPI**, sessions and questions are stored in **Mo
 - 🗄️ MongoDB persistence for questions and sessions
 - ⚡ FastAPI REST API with Swagger/ReDoc documentation
 - 🌐 Included browser frontend
-- ❤️ `/health` endpoint for deployment monitoring
+- ❤️ `/health` endpoint for service monitoring
 
 ## 🏗️ Architecture
 
@@ -56,27 +56,13 @@ The result is returned as a concise 3-step study plan. If the AI service is unav
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| `GET` | `/health` | Deployment health check |
+| `GET` | `/health` | Service health check |
 | `POST` | `/api/v1/sessions/start` | Create an adaptive test session |
 | `GET` | `/api/v1/sessions/{session_id}/next` | Get the next adaptive question |
 | `POST` | `/api/v1/sessions/{session_id}/answer` | Submit an answer and update ability |
 | `GET` | `/api/v1/sessions/{session_id}/result` | Get final result and study plan |
 
 Interactive API documentation is available at `/docs` after the server starts.
-
-## 🚀 Deploy on Render
-
-The repository includes `render.yaml` with the FastAPI start command and environment-variable configuration.
-
-Create the following environment variables in Render:
-
-```text
-GROQ_API_KEY=your_groq_api_key
-MONGODB_URI=your_mongodb_connection_string
-DB_NAME=adaptive_engine
-```
-
-Never commit real API keys or database credentials to GitHub.
 
 ## ▶️ Run Locally
 
@@ -128,7 +114,6 @@ Adaptive_Diagnostic_Recognition/
 ├── frontend/
 │   └── index.html
 ├── tests/
-├── render.yaml
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -142,4 +127,4 @@ For production use, restrict CORS origins instead of allowing all origins and ad
 
 ## 📌 AI Development Notes
 
-AI tools were used during development for architecture planning, debugging, API integration, and prompt engineering. External API behavior, environment configuration, and deployment issues still require independent testing and verification.
+AI tools were used during development for architecture planning, debugging, API integration, and prompt engineering. External API behavior and environment configuration still require independent testing and verification.
