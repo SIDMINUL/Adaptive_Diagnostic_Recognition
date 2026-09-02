@@ -1,172 +1,145 @@
-# AI-Driven Adaptive Diagnostic Engine
+# 🧠 AI-Driven Adaptive Diagnostic Engine
 
-## Overview
+An adaptive testing platform that estimates a student's ability level while dynamically selecting questions based on previous answers.
 
-This project implements a 1-D Adaptive Testing System that estimates a student's proficiency level by dynamically adjusting question difficulty based on previous responses.
+The backend is built with **FastAPI**, sessions and questions are stored in **MongoDB**, and **Groq** generates a personalized study plan after the assessment.
 
-The system uses:
+## ✨ Features
 
-* FastAPI (backend API)
-* MongoDB (question database)
-* Groq LLM (AI-generated study plan)
-* Item Response Theory (IRT) inspired ability updates.
+- 🎯 Adaptive question selection based on estimated ability
+- 📈 IRT-inspired ability updates
+- 📚 Topic-level performance tracking
+- 🤖 Groq-powered personalized 3-step study plan
+- 🗄️ MongoDB persistence for questions and sessions
+- ⚡ FastAPI REST API with Swagger/ReDoc documentation
+- 🌐 Included browser frontend
+- ❤️ `/health` endpoint for deployment monitoring
 
----
+## 🏗️ Architecture
 
-## Features
+```text
+Browser Frontend
+       ↓
+FastAPI REST API
+       ↓
+Adaptive Testing Service ───→ MongoDB
+       ↓
+Assessment Result
+       ↓
+Groq LLM
+       ↓
+Personalized Study Plan
+```
 
-* Adaptive question selection
-* Ability score estimation
-* Topic performance tracking
-* AI-generated personalized study plan
+## 🧮 Adaptive Algorithm
 
----
+1. The student starts with a baseline ability score of `0.5`.
+2. Every question has a difficulty value between `0.1` and `1.0`.
+3. A correct answer increases the estimated ability.
+4. An incorrect answer decreases the estimated ability.
+5. The next question is selected near the updated ability level.
 
-## How to Run
+This is a simplified **Item Response Theory (IRT)-inspired** approach rather than a full IRT implementation.
 
-### 1 Install dependencies
+## 🤖 AI Study Plan
 
+At the end of an assessment, the backend sends the student's performance summary to Groq. The generated plan considers:
+
+- Estimated ability level
+- Overall accuracy
+- Weak topics
+- Topic-level performance
+
+The result is returned as a concise 3-step study plan. If the AI service is unavailable, the API returns a graceful fallback summary instead of crashing the session result.
+
+## 🔌 API Endpoints
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/health` | Deployment health check |
+| `POST` | `/api/v1/sessions/start` | Create an adaptive test session |
+| `GET` | `/api/v1/sessions/{session_id}/next` | Get the next adaptive question |
+| `POST` | `/api/v1/sessions/{session_id}/answer` | Submit an answer and update ability |
+| `GET` | `/api/v1/sessions/{session_id}/result` | Get final result and study plan |
+
+Interactive API documentation is available at `/docs` after the server starts.
+
+## 🚀 Deploy on Render
+
+The repository includes `render.yaml` with the FastAPI start command and environment-variable configuration.
+
+Create the following environment variables in Render:
+
+```text
+GROQ_API_KEY=your_groq_api_key
+MONGODB_URI=your_mongodb_connection_string
+DB_NAME=adaptive_engine
+```
+
+Never commit real API keys or database credentials to GitHub.
+
+## ▶️ Run Locally
+
+```bash
+git clone https://github.com/SIDMINUL/Adaptive_Diagnostic_Recognition.git
+cd Adaptive_Diagnostic_Recognition
+python -m venv .venv
+```
+
+Activate the virtual environment and install dependencies:
+
+```bash
 pip install -r requirements.txt
+```
 
-### 2 Start MongoDB
+Create a `.env` file:
 
-mongod
+```env
+GROQ_API_KEY=your_groq_api_key
+MONGODB_URI=mongodb://localhost:27017
+DB_NAME=adaptive_engine
+```
 
-### 3 Set environment variables
+Start the API:
 
-Create `.env`
+```bash
+uvicorn app.main:app --reload --port 8000
+```
 
-GROQ_API_KEY=your_key_here
+Then open:
 
-### 4 Run server
-
-uvicorn app.main:app --reload
-
-### 5 Open API docs
-
+```text
 http://127.0.0.1:8000/docs
+```
 
----
+## 📁 Project Structure
 
-## Adaptive Algorithm Logic
+```text
+Adaptive_Diagnostic_Recognition/
+├── app/
+│   ├── main.py
+│   ├── models/
+│   ├── routers/
+│   ├── services/
+│   │   ├── adaptive.py
+│   │   ├── ai_insights.py
+│   │   └── database.py
+│   └── seed.py
+├── frontend/
+│   └── index.html
+├── tests/
+├── render.yaml
+├── requirements.txt
+├── .gitignore
+└── README.md
+```
 
-1. Student starts with baseline ability = 0.5
-2. Each question has difficulty (0.1–1.0)
-3. If answer is correct → ability increases
-4. If incorrect → ability decreases
-5. Next question is selected closest to updated ability.
+## ⚠️ Requirements
 
-This mimics a simplified Item Response Theory (IRT) approach.
+The application requires a reachable MongoDB instance for questions and session persistence. Groq-powered study plans require a valid `GROQ_API_KEY`.
 
----
+For production use, restrict CORS origins instead of allowing all origins and add authentication/rate limiting as appropriate.
 
-## AI Study Plan
+## 📌 AI Development Notes
 
-After the test ends:
-
-* Performance data is sent to Groq LLM
-* The model analyzes:
-
-  * weak topics
-  * accuracy
-  * ability level
-* Generates a personalized 3-step study plan.
-
----
-
-## API Endpoints
-
-POST /api/v1/sessions/start
-GET /api/v1/sessions/{session_id}/next
-POST /api/v1/sessions/{session_id}/answer
-GET /api/v1/sessions/{session_id}/result
-
----
-
-## AI Log
-
-AI tools used during development:
-
-* ChatGPT for architecture planning
-* ChatGPT for debugging API integration
-* ChatGPT for converting Anthropic API to Groq API
-* AI-assisted prompt engineering for study plan generation
-
-Challenges AI could not solve directly:
-
-* Groq API model deprecation
-* environment variable loading issues
-* adapting FastAPI service structure
-
-These were resolved manually through debugging and documentation review.
-
-
-## API Documentation
-
-Base URL:
-http://127.0.0.1:8000
-
-Interactive docs (FastAPI Swagger):
-http://127.0.0.1:8000/docs
-
-### 1. Start Test Session
-
-POST /api/v1/sessions/start
-
-Description:
-Creates a new adaptive testing session.
-
-Response Example:
-{
-"session_id": "886c4e09-c2cb-4755-b519-c18e42e16b78"
-}
-
-### 2. Get Next Question
-
-GET /api/v1/sessions/{session_id}/next
-
-Description:
-Returns the next question selected by the adaptive algorithm based on the user's current ability estimate.
-
-Response Example:
-{
-"question_id": "q12",
-"question": "Solve: 2x + 5 = 11",
-"options": ["2", "3", "4", "5"],
-"difficulty": 0.55,
-"topic": "Algebra"
-}
-
-### 3. Submit Answer
-
-POST /api/v1/sessions/{session_id}/answer
-
-Description:
-Submits a student's answer and updates the ability score.
-
-Request Example:
-{
-"question_id": "q12",
-"selected_answer": "3"
-}
-
-Response Example:
-{
-"correct": true,
-"updated_ability": 0.62
-}
-
-### 4. Get Final Result and Study Plan
-
-GET /api/v1/sessions/{session_id}/result
-
-Description:
-Returns final ability score, topic performance, and AI-generated study plan.
-
-Response Example:
-{
-"final_ability": 0.58,
-"accuracy": 0.6,
-"weak_topics": ["Algebra"],
-"study_plan": "Step 1: Review algebra basics..."
-}
+AI tools were used during development for architecture planning, debugging, API integration, and prompt engineering. External API behavior, environment configuration, and deployment issues still require independent testing and verification.
